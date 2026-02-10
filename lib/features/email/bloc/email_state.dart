@@ -22,6 +22,7 @@ class EmailLoaded extends EmailState {
   final int currentOffset;
   final String? currentCategory;
   final CategoryCountsResponse? categoryCounts;
+  final String? message; // Optional message for user feedback
 
   EmailLoaded({
     required this.emails,
@@ -30,17 +31,19 @@ class EmailLoaded extends EmailState {
     required this.currentOffset,
     this.currentCategory,
     this.categoryCounts,
+    this.message,
   });
 
   @override
   List<Object?> get props => [
-        emails,
-        total,
-        hasMore,
-        currentOffset,
-        currentCategory,
-        categoryCounts,
-      ];
+    emails,
+    total,
+    hasMore,
+    currentOffset,
+    currentCategory,
+    categoryCounts,
+    message,
+  ];
 
   EmailLoaded copyWith({
     List<EmailModel>? emails,
@@ -49,6 +52,8 @@ class EmailLoaded extends EmailState {
     int? currentOffset,
     String? currentCategory,
     CategoryCountsResponse? categoryCounts,
+    String? message,
+    bool clearMessage = false,
   }) {
     return EmailLoaded(
       emails: emails ?? this.emails,
@@ -57,6 +62,7 @@ class EmailLoaded extends EmailState {
       currentOffset: currentOffset ?? this.currentOffset,
       currentCategory: currentCategory ?? this.currentCategory,
       categoryCounts: categoryCounts ?? this.categoryCounts,
+      message: clearMessage ? null : (message ?? this.message),
     );
   }
 }
@@ -66,10 +72,7 @@ class EmailLoadingMore extends EmailState {
   final List<EmailModel> currentEmails;
   final int currentOffset;
 
-  EmailLoadingMore({
-    required this.currentEmails,
-    required this.currentOffset,
-  });
+  EmailLoadingMore({required this.currentEmails, required this.currentOffset});
 
   @override
   List<Object?> get props => [currentEmails, currentOffset];

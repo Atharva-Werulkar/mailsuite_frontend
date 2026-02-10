@@ -7,7 +7,7 @@ class ApiConstants {
   // Base URLs
   static final String baseUrl = String.fromEnvironment(
     dotenv.env['API_BASE_URL']!,
-    defaultValue: 'http://192.168.29.8:3000',
+    defaultValue: 'https://mailsuite-backend.vercel.app/',
   );
 
   // API Endpoints

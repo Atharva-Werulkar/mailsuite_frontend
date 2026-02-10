@@ -172,6 +172,8 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     MarkThreadAsReadEvent event,
     Emitter<ThreadState> emit,
   ) async {
+    final previousState = state;
+
     try {
       final updatedThread = await _threadService.markAsRead(
         event.threadId,
@@ -179,25 +181,25 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
       );
 
       // Update the thread in current list if loaded
-      if (state is ThreadLoaded) {
-        final currentState = state as ThreadLoaded;
-        final updatedThreads = currentState.threads.map((thread) {
+      if (previousState is ThreadLoaded) {
+        final updatedThreads = previousState.threads.map((thread) {
           return thread.id == event.threadId ? updatedThread : thread;
         }).toList();
 
-        emit(currentState.copyWith(threads: updatedThreads));
-      } else if (state is ThreadDetailLoaded) {
+        emit(
+          previousState.copyWith(
+            threads: updatedThreads,
+            message: event.isRead ? 'Marked as read' : 'Marked as unread',
+          ),
+        );
+      } else if (previousState is ThreadDetailLoaded) {
         emit(ThreadDetailLoaded(updatedThread));
       }
-
-      emit(
-        ThreadUpdated(
-          thread: updatedThread,
-          message: event.isRead ? 'Marked as read' : 'Marked as unread',
-        ),
-      );
     } catch (e) {
       log('❌ [ThreadBloc] Error marking thread as read: $e', error: e);
+      if (previousState is ThreadLoaded) {
+        emit(previousState);
+      }
       emit(ThreadError(e.toString()));
     }
   }
@@ -207,32 +209,29 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     ToggleThreadArchiveEvent event,
     Emitter<ThreadState> emit,
   ) async {
+    final previousState = state;
+
     try {
-      final updatedThread = await _threadService.toggleArchive(
-        event.threadId,
-        event.isArchived,
-      );
+      await _threadService.toggleArchive(event.threadId, event.isArchived);
 
       // Remove from list if archived
-      if (state is ThreadLoaded && event.isArchived) {
-        final currentState = state as ThreadLoaded;
-        final updatedThreads = currentState.threads
+      if (previousState is ThreadLoaded && event.isArchived) {
+        final updatedThreads = previousState.threads
             .where((thread) => thread.id != event.threadId)
             .toList();
 
-        emit(currentState.copyWith(threads: updatedThreads));
-      } else if (state is ThreadDetailLoaded) {
-        emit(ThreadDetailLoaded(updatedThread));
+        emit(
+          previousState.copyWith(
+            threads: updatedThreads,
+            message: event.isArchived ? 'Archived' : 'Unarchived',
+          ),
+        );
       }
-
-      emit(
-        ThreadUpdated(
-          thread: updatedThread,
-          message: event.isArchived ? 'Archived' : 'Unarchived',
-        ),
-      );
     } catch (e) {
       log('❌ [ThreadBloc] Error toggling archive: $e', error: e);
+      if (previousState is ThreadLoaded) {
+        emit(previousState);
+      }
       emit(ThreadError(e.toString()));
     }
   }
@@ -242,22 +241,29 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     DeleteThreadEvent event,
     Emitter<ThreadState> emit,
   ) async {
+    final previousState = state;
+
     try {
       await _threadService.deleteThread(event.threadId);
 
       // Remove from list if loaded
-      if (state is ThreadLoaded) {
-        final currentState = state as ThreadLoaded;
-        final updatedThreads = currentState.threads
+      if (previousState is ThreadLoaded) {
+        final updatedThreads = previousState.threads
             .where((thread) => thread.id != event.threadId)
             .toList();
 
-        emit(currentState.copyWith(threads: updatedThreads));
+        emit(
+          previousState.copyWith(
+            threads: updatedThreads,
+            message: 'Thread deleted',
+          ),
+        );
       }
-
-      emit(ThreadDeleted(threadId: event.threadId, message: 'Thread deleted'));
     } catch (e) {
       log('❌ [ThreadBloc] Error deleting thread: $e', error: e);
+      if (previousState is ThreadLoaded) {
+        emit(previousState);
+      }
       emit(ThreadError(e.toString()));
     }
   }

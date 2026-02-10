@@ -121,7 +121,22 @@ class _EmailDetailScreenState extends State<EmailDetailScreen> {
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(SnackBar(content: Text(state.message)));
+          } else if (state is EmailLoaded && state.message != null) {
+            // Show feedback message from EmailLoaded state
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message!),
+                duration: const Duration(seconds: 1),
+              ),
+            );
           } else if (state is EmailUpdated) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          } else if (state is EmailDeleted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),

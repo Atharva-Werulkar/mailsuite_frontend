@@ -107,7 +107,22 @@ class _ThreadViewScreenState extends State<ThreadViewScreen> {
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(SnackBar(content: Text(state.message)));
+          } else if (state is ThreadLoaded && state.message != null) {
+            // Show feedback message from ThreadLoaded state
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message!),
+                duration: const Duration(seconds: 1),
+              ),
+            );
           } else if (state is ThreadUpdated) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          } else if (state is ThreadDeleted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),

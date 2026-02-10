@@ -21,6 +21,7 @@ class ThreadLoaded extends ThreadState {
   final bool hasMore;
   final int currentOffset;
   final ThreadStatsResponse? stats;
+  final String? message; // Optional message for user feedback
 
   ThreadLoaded({
     required this.threads,
@@ -28,10 +29,18 @@ class ThreadLoaded extends ThreadState {
     required this.hasMore,
     required this.currentOffset,
     this.stats,
+    this.message,
   });
 
   @override
-  List<Object?> get props => [threads, total, hasMore, currentOffset, stats];
+  List<Object?> get props => [
+    threads,
+    total,
+    hasMore,
+    currentOffset,
+    stats,
+    message,
+  ];
 
   ThreadLoaded copyWith({
     List<EmailThreadModel>? threads,
@@ -39,6 +48,8 @@ class ThreadLoaded extends ThreadState {
     bool? hasMore,
     int? currentOffset,
     ThreadStatsResponse? stats,
+    String? message,
+    bool clearMessage = false,
   }) {
     return ThreadLoaded(
       threads: threads ?? this.threads,
@@ -46,6 +57,7 @@ class ThreadLoaded extends ThreadState {
       hasMore: hasMore ?? this.hasMore,
       currentOffset: currentOffset ?? this.currentOffset,
       stats: stats ?? this.stats,
+      message: clearMessage ? null : (message ?? this.message),
     );
   }
 }

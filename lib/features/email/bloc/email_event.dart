@@ -86,3 +86,6 @@ class SearchEmailsEvent extends EmailEvent {
 
   SearchEmailsEvent(this.query);
 }
+
+/// Clear message from EmailLoaded state
+class ClearMessageEvent extends EmailEvent {}

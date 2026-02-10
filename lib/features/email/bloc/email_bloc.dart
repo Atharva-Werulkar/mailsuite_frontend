@@ -31,6 +31,7 @@ class EmailBloc extends Bloc<EmailEvent, EmailState> {
     on<ToggleEmailArchiveEvent>(_onToggleEmailArchive);
     on<DeleteEmailEvent>(_onDeleteEmail);
     on<SearchEmailsEvent>(_onSearchEmails);
+    on<ClearMessageEvent>(_onClearMessage);
   }
 
   /// Load emails with filters
@@ -198,6 +199,8 @@ class EmailBloc extends Bloc<EmailEvent, EmailState> {
     MarkEmailAsReadEvent event,
     Emitter<EmailState> emit,
   ) async {
+    final previousState = state;
+
     try {
       final updatedEmail = await _emailService.markAsRead(
         event.emailId,
@@ -205,25 +208,25 @@ class EmailBloc extends Bloc<EmailEvent, EmailState> {
       );
 
       // Update the email in current list if loaded
-      if (state is EmailLoaded) {
-        final currentState = state as EmailLoaded;
-        final updatedEmails = currentState.emails.map((email) {
+      if (previousState is EmailLoaded) {
+        final updatedEmails = previousState.emails.map((email) {
           return email.id == event.emailId ? updatedEmail : email;
         }).toList();
 
-        emit(currentState.copyWith(emails: updatedEmails));
-      } else if (state is EmailDetailLoaded) {
+        emit(
+          previousState.copyWith(
+            emails: updatedEmails,
+            message: event.isRead ? 'Marked as read' : 'Marked as unread',
+          ),
+        );
+      } else if (previousState is EmailDetailLoaded) {
         emit(EmailDetailLoaded(updatedEmail));
       }
-
-      emit(
-        EmailUpdated(
-          email: updatedEmail,
-          message: event.isRead ? 'Marked as read' : 'Marked as unread',
-        ),
-      );
     } catch (e) {
       log('❌ [EmailBloc] Error marking email as read: $e', error: e);
+      if (previousState is EmailLoaded) {
+        emit(previousState);
+      }
       emit(EmailError(e.toString()));
     }
   }
@@ -233,6 +236,8 @@ class EmailBloc extends Bloc<EmailEvent, EmailState> {
     ToggleEmailStarEvent event,
     Emitter<EmailState> emit,
   ) async {
+    final previousState = state;
+
     try {
       final updatedEmail = await _emailService.toggleStar(
         event.emailId,
@@ -240,25 +245,25 @@ class EmailBloc extends Bloc<EmailEvent, EmailState> {
       );
 
       // Update the email in current list if loaded
-      if (state is EmailLoaded) {
-        final currentState = state as EmailLoaded;
-        final updatedEmails = currentState.emails.map((email) {
+      if (previousState is EmailLoaded) {
+        final updatedEmails = previousState.emails.map((email) {
           return email.id == event.emailId ? updatedEmail : email;
         }).toList();
 
-        emit(currentState.copyWith(emails: updatedEmails));
-      } else if (state is EmailDetailLoaded) {
+        emit(
+          previousState.copyWith(
+            emails: updatedEmails,
+            message: event.isStarred ? 'Starred' : 'Unstarred',
+          ),
+        );
+      } else if (previousState is EmailDetailLoaded) {
         emit(EmailDetailLoaded(updatedEmail));
       }
-
-      emit(
-        EmailUpdated(
-          email: updatedEmail,
-          message: event.isStarred ? 'Starred' : 'Unstarred',
-        ),
-      );
     } catch (e) {
       log('❌ [EmailBloc] Error toggling star: $e', error: e);
+      if (previousState is EmailLoaded) {
+        emit(previousState);
+      }
       emit(EmailError(e.toString()));
     }
   }
@@ -268,32 +273,29 @@ class EmailBloc extends Bloc<EmailEvent, EmailState> {
     ToggleEmailArchiveEvent event,
     Emitter<EmailState> emit,
   ) async {
+    final previousState = state;
+
     try {
-      final updatedEmail = await _emailService.toggleArchive(
-        event.emailId,
-        event.isArchived,
-      );
+      await _emailService.toggleArchive(event.emailId, event.isArchived);
 
       // Remove from list if archived
-      if (state is EmailLoaded && event.isArchived) {
-        final currentState = state as EmailLoaded;
-        final updatedEmails = currentState.emails
+      if (previousState is EmailLoaded && event.isArchived) {
+        final updatedEmails = previousState.emails
             .where((email) => email.id != event.emailId)
             .toList();
 
-        emit(currentState.copyWith(emails: updatedEmails));
-      } else if (state is EmailDetailLoaded) {
-        emit(EmailDetailLoaded(updatedEmail));
+        emit(
+          previousState.copyWith(
+            emails: updatedEmails,
+            message: event.isArchived ? 'Archived' : 'Unarchived',
+          ),
+        );
       }
-
-      emit(
-        EmailUpdated(
-          email: updatedEmail,
-          message: event.isArchived ? 'Archived' : 'Unarchived',
-        ),
-      );
     } catch (e) {
       log('❌ [EmailBloc] Error toggling archive: $e', error: e);
+      if (previousState is EmailLoaded) {
+        emit(previousState);
+      }
       emit(EmailError(e.toString()));
     }
   }
@@ -303,22 +305,29 @@ class EmailBloc extends Bloc<EmailEvent, EmailState> {
     DeleteEmailEvent event,
     Emitter<EmailState> emit,
   ) async {
+    final previousState = state;
+
     try {
       await _emailService.deleteEmail(event.emailId);
 
       // Remove from list if loaded
-      if (state is EmailLoaded) {
-        final currentState = state as EmailLoaded;
-        final updatedEmails = currentState.emails
+      if (previousState is EmailLoaded) {
+        final updatedEmails = previousState.emails
             .where((email) => email.id != event.emailId)
             .toList();
 
-        emit(currentState.copyWith(emails: updatedEmails));
+        emit(
+          previousState.copyWith(
+            emails: updatedEmails,
+            message: 'Email deleted',
+          ),
+        );
       }
-
-      emit(EmailDeleted(emailId: event.emailId, message: 'Email deleted'));
     } catch (e) {
       log('❌ [EmailBloc] Error deleting email: $e', error: e);
+      if (previousState is EmailLoaded) {
+        emit(previousState);
+      }
       emit(EmailError(e.toString()));
     }
   }
@@ -329,5 +338,12 @@ class EmailBloc extends Bloc<EmailEvent, EmailState> {
     Emitter<EmailState> emit,
   ) async {
     add(LoadEmailsEvent(search: event.query, isRefresh: true));
+  }
+
+  /// Clear message from EmailLoaded state
+  void _onClearMessage(ClearMessageEvent event, Emitter<EmailState> emit) {
+    if (state is EmailLoaded) {
+      emit((state as EmailLoaded).copyWith(clearMessage: true));
+    }
   }
 }
